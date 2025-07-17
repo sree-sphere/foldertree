@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
+"""
+FolderTree Generator - Create folder structures from various input formats
+"""
 
+import os
+import sys
 import re
 import yaml
+import argparse
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 from dataclasses import dataclass
+import json
 
 
 @dataclass
 class TreeNode:
+    """Represents a node in the folder tree structure"""
     name: str
     is_directory: bool
     comment: Optional[str] = None
@@ -20,6 +28,7 @@ class TreeNode:
 
 
 class TreeParser:
+    """Parse various input formats into a tree structure"""
     
     def __init__(self):
         self.comment_styles = {
@@ -64,6 +73,7 @@ class TreeParser:
         }
     
     def parse_tree_format(self, content: str) -> TreeNode:
+        """Parse tree-like structure (with ├── └── symbols)"""
         lines = content.strip().split('\n')
         root = TreeNode(".", True)
         stack = [(root, -1)]  # (node, indent_level)
@@ -109,6 +119,7 @@ class TreeParser:
         return root
     
     def parse_yaml_format(self, content: str) -> TreeNode:
+        """Parse YAML structure"""
         try:
             data = yaml.safe_load(content)
             return self._yaml_to_tree(data, ".")
@@ -116,6 +127,7 @@ class TreeParser:
             raise ValueError(f"Invalid YAML format: {e}")
     
     def _yaml_to_tree(self, data: Union[Dict, List, str], name: str) -> TreeNode:
+        """Convert YAML data to tree structure"""
         if isinstance(data, dict):
             node = TreeNode(name, True)
             for key, value in data.items():
@@ -136,6 +148,7 @@ class TreeParser:
             return TreeNode(str(data), not self._has_extension(str(data)))
     
     def parse_simple_format(self, content: str) -> TreeNode:
+        """Parse simple indented format"""
         lines = content.strip().split('\n')
         root = TreeNode(".", True)
         stack = [(root, -1)]
@@ -176,9 +189,11 @@ class TreeParser:
         return root
     
     def _has_extension(self, filename: str) -> bool:
+        """Check if filename has an extension"""
         return '.' in filename and not filename.startswith('.')
     
     def parse(self, content: str, format_type: str = 'auto') -> TreeNode:
+        """Parse content based on format type"""
         if format_type == 'auto':
             # Auto-detect format
             if content.strip().startswith(('├', '└', '│')):
@@ -199,6 +214,7 @@ class TreeParser:
 
 
 class TreeGenerator:
+    """Generate folder structures on filesystem"""
     
     def __init__(self, base_path: str = ".", dry_run: bool = False):
         self.base_path = Path(base_path)
@@ -238,7 +254,7 @@ class TreeGenerator:
         )
     
     def _create_init_py(self, directory: Path) -> None:
-        
+        """Create __init__.py file in Python package directories"""
         init_file = directory / "__init__.py"
         if not init_file.exists():
             if not self.dry_run:
@@ -246,13 +262,14 @@ class TreeGenerator:
             self.created_files.append(str(init_file))
     
     def _should_create_init_py(self, directory: Path) -> bool:
+        """Check if directory should have __init__.py"""
         # Check if directory contains .py files
         if not self.dry_run and directory.exists():
             return any(f.suffix == '.py' for f in directory.iterdir() if f.is_file())
         return False
     
     def _create_file_with_comment(self, file_path: Path, comment: str) -> None:
-
+        """Create file with initial comment"""
         if not self.dry_run:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
@@ -271,17 +288,20 @@ class TreeGenerator:
         self.created_files.append(str(file_path))
     
     def _create_directory(self, dir_path: Path) -> None:
+        """Create directory"""
         if not self.dry_run:
             dir_path.mkdir(parents=True, exist_ok=True)
         self.created_dirs.append(str(dir_path))
     
     def _create_file(self, file_path: Path) -> None:
+        """Create empty file"""
         if not self.dry_run:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.touch()
         self.created_files.append(str(file_path))
     
     def _generate_recursive(self, node: TreeNode, current_path: Path) -> None:
+        """Recursively generate folder structure"""
         for child in node.children:
             if self._should_skip(child.name):
                 self.skipped_items.append(child.name)
@@ -303,6 +323,7 @@ class TreeGenerator:
                     self._create_file(child_path)
     
     def generate(self, tree: TreeNode) -> Dict[str, List[str]]:
+        """Generate folder structure from tree"""
         self.created_files = []
         self.created_dirs = []
         self.skipped_items = []

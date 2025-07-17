@@ -5,10 +5,12 @@ Command line interface for FolderTree Generator
 
 import sys
 import argparse
+from pathlib import Path
 from .core import TreeParser, TreeGenerator
 
 
 def main():
+    """Main CLI interface"""
     parser = argparse.ArgumentParser(
         description='Generate folder structures from various input formats',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -102,34 +104,34 @@ Examples:
         
         # Print results
         if args.dry_run:
-            print("DRY RUN - No files were actually created")
+            print("🔍 DRY RUN - No files were actually created")
             print()
         
         if result['created_dirs']:
-            print(f"Created directories ({len(result['created_dirs'])}):")
+            print(f"📁 Created directories ({len(result['created_dirs'])}):")
             for dir_path in result['created_dirs']:
-                print(f"  {dir_path}")
+                print(f"  📁 {dir_path}")
             print()
         
         if result['created_files']:
-            print(f"Created files ({len(result['created_files'])}):")
+            print(f"📄 Created files ({len(result['created_files'])}):")
             for file_path in result['created_files']:
-                print(f"  {file_path}")
+                print(f"  📄 {file_path}")
             print()
         
         if result['skipped_items']:
-            print(f"Skipped items ({len(result['skipped_items'])}):")
+            print(f"⏭️  Skipped items ({len(result['skipped_items'])}):")
             for item in result['skipped_items']:
-                print(f"  =>{item}")
+                print(f"  ⏭️  {item}")
             print()
         
         if args.verbose:
-            print(f"Total: {len(result['created_dirs'])} directories, {len(result['created_files'])} files")
+            print(f"✅ Total: {len(result['created_dirs'])} directories, {len(result['created_files'])} files")
             if result['skipped_items']:
-                print(f"Skipped: {len(result['skipped_items'])} items")
+                print(f"⏭️  Skipped: {len(result['skipped_items'])} items")
     
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"❌ Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
