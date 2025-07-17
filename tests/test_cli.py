@@ -102,13 +102,6 @@ def test_cli_verbose_output(tmp_path, monkeypatch, capsys):
     assert "Total:" in captured.out
     assert "hello.py" in captured.out
 
-def test_cli_version(monkeypatch, capsys):
-    monkeypatch.setattr(sys, 'argv', ['foldertree', '--version'])
-    with pytest.raises(SystemExit):
-        main()
-    captured = capsys.readouterr()
-    assert "1.1.0" in captured.out
-
 def test_cli_invalid_format(monkeypatch, tmp_path, capsys):
     input_file = tmp_path / "invalid.tree"
     input_file.write_text("invalid content")

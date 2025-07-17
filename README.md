@@ -13,7 +13,9 @@ A Python tool to generate folder structures from tree-like format.
 
 # Installation
 ```bash
-pip install foldertree
+git clone https://github.com/sree-sphere/foldertree.git
+cd foldertree
+pip install -e .
 ```
 
 # Usage
@@ -34,7 +36,7 @@ core/
 foldertree -f structure.tree --dry-run
 
 # Specify output directory
-foldertree -f structure.tree -o /path/to/output
+foldertree -f structure.tree -o project_output
 
 # Force specific format
 foldertree -f structure.yaml --format yaml

@@ -196,8 +196,8 @@ class TreeParser:
         return root
     
     def _has_extension(self, filename: str) -> bool:
-        """Check if filename has an extension"""
-        return '.' in filename and not filename.startswith('.')
+        """Check if filename has an extension (not just a dotfile)"""
+        return '.' in filename and not filename.startswith('.') and not filename.endswith('/')
     
     def parse(self, content: str, format_type: str = 'auto') -> TreeNode:
         """Parse content based on format type"""
