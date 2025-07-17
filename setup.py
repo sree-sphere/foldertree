@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="foldertree",
-    version="1.0.0",
+    version="1.1.0",
     description="Generate folder structures from various input formats (tree, YAML, simple indentation)",
     long_description=long_description,
     long_description_content_type="text/markdown",

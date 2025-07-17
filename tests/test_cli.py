@@ -107,7 +107,7 @@ def test_cli_version(monkeypatch, capsys):
     with pytest.raises(SystemExit):
         main()
     captured = capsys.readouterr()
-    assert "1.0.0" in captured.out
+    assert "1.1.0" in captured.out
 
 def test_cli_invalid_format(monkeypatch, tmp_path, capsys):
     input_file = tmp_path / "invalid.tree"
