@@ -196,8 +196,15 @@ class TreeParser:
         return root
     
     def _has_extension(self, filename: str) -> bool:
-        """Check if filename has an extension (not just a dotfile)"""
-        return '.' in filename and not filename.startswith('.') and not filename.endswith('/')
+        """Check if filename has an extension.
+
+        Treat standalone dot‑files (.gitignore, .env) as having an extension, so they become files, not directories.
+        """
+        # if its a leading single dot‑file with no other dots, treat it as a file
+        if filename.startswith('.') and filename.count('.') == 1:
+            return True
+        # otherwise fall back to "contains a dot somewhere" but not a leading dot
+        return '.' in filename and not filename.startswith('.')
     
     def parse(self, content: str, format_type: str = 'auto') -> TreeNode:
         """Parse content based on format type"""
