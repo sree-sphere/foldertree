@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 from foldertree.core import TreeGenerator, TreeNode
 
+
 class TestTreeGenerator:
     def test_generate_structure(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -19,7 +20,7 @@ class TestTreeGenerator:
             
             # Check results
             assert len(result['created_dirs']) == 1
-            assert len(result['created_files']) == 1
+            assert len(result['created_files']) == 2
             
             # Check actual files
             api_path = Path(tmp_dir) / "api"
@@ -74,3 +75,69 @@ class TestTreeGenerator:
             
             assert py_path.read_text() == "# Main module\n"
             assert js_path.read_text() == "// JavaScript module\n"
+
+def test_generate_nested_structure():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        gen = TreeGenerator(tmp_dir)
+        root = TreeNode(".", True)
+        deep = TreeNode("dir", True)
+        file = TreeNode("file.txt", False)
+        deep.children.append(file)
+        root.children.append(deep)
+        result = gen.generate(root)
+        assert any("file.txt" in f for f in result['created_files'])
+
+def test_should_create_init_py_with_py_files(tmp_path):
+    dir_path = tmp_path / "pkg"
+    dir_path.mkdir()
+    (dir_path / "module.py").touch()
+    generator = TreeGenerator(str(tmp_path))
+    assert generator._should_create_init_py(dir_path) is True
+
+def test_should_create_init_py_without_py_files(tmp_path):
+    dir_path = tmp_path / "pkg"
+    dir_path.mkdir()
+    (dir_path / "README.md").touch()
+    generator = TreeGenerator(str(tmp_path))
+    assert generator._should_create_init_py(dir_path) is False
+
+def test_file_with_css_comment(tmp_path):
+    node = TreeNode("styles.css", False, "Style rules")
+    root = TreeNode(".", True, children=[node])
+    generator = TreeGenerator(str(tmp_path))
+    generator.generate(root)
+    content = (tmp_path / "styles.css").read_text()
+    assert "/* Style rules */" in content
+
+def test_file_with_xml_comment(tmp_path):
+    node = TreeNode("config.xml", False, "XML config")
+    root = TreeNode(".", True, children=[node])
+    generator = TreeGenerator(str(tmp_path))
+    generator.generate(root)
+    content = (tmp_path / "config.xml").read_text()
+    assert "<!-- XML config -->" in content
+
+def test_comment_style_fallback(tmp_path):
+    node = TreeNode("file.xyz", False, "Unknown format comment")
+    root = TreeNode(".", True, children=[node])
+    generator = TreeGenerator(str(tmp_path))
+    generator.generate(root)
+    content = (tmp_path / "file.xyz").read_text()
+    assert "# Unknown format comment" in content
+
+def test_xml_comment_style(tmp_path):
+    node = TreeNode("config.xml", False, "XML config")
+    root = TreeNode(".", True, children=[node])
+    generator = TreeGenerator(str(tmp_path))
+    generator.generate(root)
+    content = (tmp_path / "config.xml").read_text()
+    assert "<!-- XML config -->" in content
+
+def test_dry_run_no_file_creation(tmp_path):
+    generator = TreeGenerator(str(tmp_path), dry_run=True)
+    root = TreeNode(".", True)
+    file_node = TreeNode("test.txt", False, "Test file")
+    root.children.append(file_node)
+    result = generator.generate(root)
+    assert len(result['created_files']) == 1
+    assert not (tmp_path / "test.txt").exists()

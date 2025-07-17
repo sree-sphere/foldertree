@@ -25,6 +25,14 @@ class TreeNode:
     def __post_init__(self):
         if self.children is None:
             self.children = []
+    
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "is_directory": self.is_directory,
+            "comment": self.comment,
+            "children": [child.to_dict() for child in self.children]
+        }
 
 
 class TreeParser:
@@ -88,7 +96,9 @@ class TreeParser:
                 continue
                 
             # Calculate indentation level
-            indent = len(line) - len(line.lstrip())
+            # indent = len(line) - len(line.lstrip())
+            indent = len(re.match(r'^[│├└─\s]*', line).group())
+
             
             # Extract comment if present
             comment = None
@@ -118,13 +128,9 @@ class TreeParser:
         
         return root
     
-    def parse_yaml_format(self, content: str) -> TreeNode:
-        """Parse YAML structure"""
-        try:
-            data = yaml.safe_load(content)
-            return self._yaml_to_tree(data, ".")
-        except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML format: {e}")
+    def parse_yaml_format(self, yaml_content):
+        yaml_data = yaml.safe_load(yaml_content)
+        return self._yaml_to_tree(yaml_data, '.')
     
     def _yaml_to_tree(self, data: Union[Dict, List, str], name: str) -> TreeNode:
         """Convert YAML data to tree structure"""
@@ -136,16 +142,17 @@ class TreeParser:
             return node
         elif isinstance(data, list):
             node = TreeNode(name, True)
-            for item in data:
-                if isinstance(item, str):
-                    child = TreeNode(item, not self._has_extension(item))
-                    node.children.append(child)
+            for i, item in enumerate(data):
+                if isinstance(item, dict):
+                    for key, value in item.items():
+                        child = self._yaml_to_tree(value, key)
+                        node.children.append(child)
                 else:
-                    child = self._yaml_to_tree(item, str(item))
+                    child = TreeNode(str(item), False)
                     node.children.append(child)
             return node
         else:
-            return TreeNode(str(data), not self._has_extension(str(data)))
+            return TreeNode(str(data), False)
     
     def parse_simple_format(self, content: str) -> TreeNode:
         """Parse simple indented format"""
@@ -194,23 +201,59 @@ class TreeParser:
     
     def parse(self, content: str, format_type: str = 'auto') -> TreeNode:
         """Parse content based on format type"""
+        stripped = content.strip()
+        
         if format_type == 'auto':
             # Auto-detect format
-            if content.strip().startswith(('├', '└', '│')):
+            if stripped.startswith(('├', '└', '│')):
                 format_type = 'tree'
-            elif content.strip().startswith(('-', 'name:', 'structure:')):
+            elif stripped.startswith(('-', '{', '[', 'name:', 'structure:')):
                 format_type = 'yaml'
             else:
                 format_type = 'simple'
-        
+
         if format_type == 'tree':
             return self.parse_tree_format(content)
         elif format_type == 'yaml':
-            return self.parse_yaml_format(content)
+            import yaml
+            parsed = yaml.safe_load(content)
+            return self._parse_yaml(parsed)
         elif format_type == 'simple':
             return self.parse_simple_format(content)
         else:
             raise ValueError(f"Unsupported format: {format_type}")
+    
+    def _parse_yaml(self, node, name=".") -> TreeNode:
+        # Handle dict-like TreeNode serialization: {"name": ..., "children": [...]}
+        if isinstance(node, dict) and "name" in node:
+            node_name = node.get("name", name)
+            is_dir = True
+            root = TreeNode(node_name, is_directory=is_dir)
+            for child in node.get("children", []):
+                root.children.append(self._parse_yaml(child))
+            return root
+
+        # Fallback to previous logic
+        root = TreeNode(name, is_directory=True)
+
+        if isinstance(node, dict):
+            for key, value in node.items():
+                child = self._parse_yaml(value, key)
+                root.children.append(child)
+        elif isinstance(node, list):
+            for item in node:
+                if isinstance(item, dict):
+                    for key, value in item.items():
+                        child = self._parse_yaml(value, key)
+                        root.children.append(child)
+                else:
+                    root.children.append(TreeNode(str(item), is_directory=False))
+        elif isinstance(node, str):
+            root.children.append(TreeNode(node, is_directory=False))
+
+        return root
+
+
 
 
 class TreeGenerator:
@@ -230,7 +273,6 @@ class TreeGenerator:
             '__pycache__',
             '*.pyc',
             '.git',
-            '.gitignore',
             '.DS_Store',
             'Thumbs.db',
             '*.log',
