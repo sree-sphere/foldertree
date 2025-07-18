@@ -1,0 +1,15 @@
+├── src/
+│   ├── main.py
+│   ├── utils/
+    │   │   ├── helpers.py      # Utility functions
+    │   │   └── config.py       # Configuration
+│   └── models/
+    │       └── classifier.py   # ML model
+├── tests/
+    │   ├── test_main.py
+    │   └── test_utils.py
+├── data/
+    │   └── sample.json
+├── requirements.txt
+├── README.md
+└── .gitignore
