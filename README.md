@@ -3,15 +3,24 @@ A Python tool to generate folder structures from tree-like format.
 
 # Features
 
-- Multiple Input Formats: Supports tree-like structures, YAML, and simple indentation
-- Auto-detection: Automatically detects input format
-- Comment Support: Adds comments to generated files based on file extensions
-- Python Package Detection: Automatically creates `__init__.py` files in Python packages
-- Smart Skipping: Skips common files like `__pycache__`, .git, etc.
-- Dry Run Mode: Preview what will be created without actual file creation
-- Flexible Output: Specify custom output directories
+- **Multiple Input Formats**: Supports tree-like structures, YAML, and simple indentation  
+- **Auto-detection**: Automatically detects input format  
+- **Comment Support**: Adds comments to generated files based on file extensions  
+- **Python Package Detection**: Automatically creates `__init__.py` files in Python packages  
+- **Smart Skipping**: Skips common files like `__pycache__`, `.git`, `node_modules`, etc.  
+- **Dry Run Mode**: Preview what will be created without actual file creation  
+- **Flexible Output**: Specify custom output directories  
 
 # Installation
+
+Directly from PyPI:
+
+```bash
+pip install treescaffold
+```
+
+Or from GitHub:
+
 ```bash
 git clone https://github.com/sree-sphere/foldertree.git
 cd foldertree
@@ -23,23 +32,29 @@ pip install -e .
 ## Command Line
 
 ```bash
-# From file
-foldertree -f structure.tree
+# From a structure file
+treescaffold -f structure.tree
+# (alias: `foldertree -f structure.tree`)
+
 
 # From stdin
 echo "api/
   routes.py
 core/
-  classifier.py" | foldertree
+  classifier.py" | treescaffold
+# (alias: `foldertree`)
+
+# Specify output directory (recommended)
+treescaffold -f structure.tree -o project_output
+# (alias: `foldertree -f structure.tree -o project_output`)
 
 # Dry run (preview only)
-foldertree -f structure.tree --dry-run
-
-# Specify output directory
-foldertree -f structure.tree -o project_output
+treescaffold -f structure.tree --dry-run
+# (alias: `foldertree -f structure.tree --dry-run`)
 
 # Force specific format
-foldertree -f structure.yaml --format yaml
+treescaffold -f structure.yaml --format yaml
+# (alias: `foldertree -f structure.yaml --format yaml`)
 ```
 
 ## Python

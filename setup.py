@@ -5,8 +5,8 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name="foldertree",
-    version="1.3.1",
+    name="treescaffold",
+    version="1.3.2",
     description="Generate folder structures from various input formats (tree, YAML, simple indentation)",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -20,6 +20,7 @@ setup(
     entry_points={
         "console_scripts": [
             "foldertree=foldertree.cli:main",
+            "treescaffold=foldertree.cli:main",
         ],
     },
     python_requires=">=3.7",
