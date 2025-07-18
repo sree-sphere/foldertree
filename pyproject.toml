@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "foldertree"
+name = "treescaffold"
 version = "1.3.1"
 description = "Generate folder structures from various input formats (tree, YAML, simple indentation)"
 authors = [
@@ -50,6 +50,8 @@ Issues = "https://github.com/sree-sphere/foldertree/issues"
 
 [project.scripts]
 foldertree = "foldertree.cli:main"
+treescaffold = "foldertree.cli:main"
+
 
 [tool.setuptools.packages.find]
 where = ["."]
