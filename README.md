@@ -1,4 +1,9 @@
 # treescaffold (foldertree)
+[![PyPI](https://img.shields.io/pypi/v/treescaffold.svg)](https://pypi.org/project/treescaffold/)
+![codecov](https://codecov.io/gh/sree-sphere/foldertree/branch/main/graph/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
+
 A Python tool to generate folder structures from tree-like format.
 
 # Features

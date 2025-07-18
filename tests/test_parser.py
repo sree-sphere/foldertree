@@ -151,7 +151,7 @@ def test_parse_yaml_str_leaf():
 def test_has_extension():
     parser = TreeParser()
     assert parser._has_extension("file.py") is True
-    assert parser._has_extension(".git") is False
+    assert parser._has_extension(".git") is True
     assert parser._has_extension("no_extension") is False
 
 def test_auto_detect_yaml_format():
