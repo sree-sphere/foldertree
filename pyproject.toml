@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "treescaffold"
-version = "1.4.2"
+version = "1.4.3"
 description = "Generate folder structures from various input formats (tree, YAML, simple indentation)"
 authors = [
     {name = "Sreeprad", email = "sreeprad99@gmail.com"}

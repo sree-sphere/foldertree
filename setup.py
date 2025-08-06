@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="treescaffold",
-    version="1.4.2",
+    version="1.4.3",
     description="Generate folder structures from various input formats (tree, YAML, simple indentation)",
     long_description=long_description,
     long_description_content_type="text/markdown",
