@@ -1,15 +1,21 @@
+MAS-ResearchTool/
+├── logs/                     # Application logs
+│   └── research_pipeline.log
+├── outputs/                  # Pipeline output artifacts
+├── pyproject.toml            # Packaging & dependencies (PDM)
+├── requirements.txt          # pip-installable dependencies
+├── pdm.lock                  # PDM lock file
+├── uv.lock                   # uv project lock
 ├── src/
-│   ├── main.py
-│   ├── utils/
-    │   │   ├── helpers.py      # Utility functions
-    │   │   └── config.py       # Configuration
-│   └── models/
-    │       └── classifier.py   # ML model
-├── tests/
-    │   ├── test_main.py
-    │   └── test_utils.py
-├── data/
-    │   └── sample.json
-├── requirements.txt
-├── README.md
-└── .gitignore
+│   ├── __init__.py
+│   ├── supervisor_agent.py   # Orchestration
+│   ├── cache_manager.py      # Redis operations
+│   ├── rag_agent.py          # ChromaDB & RAG functionality
+│   ├── main.py               # FastAPI entry point
+│   ├── multi_agent_system.py # Core pipeline & agents
+│   └── st_app.py             # Streamlit dashboard
+│   ├── models/
+│   │   └── models.py           # Pydantic models
+│   └── log.py                  # Logging configuration
+├── tests/                    # Unit & integration tests
+└── README.md                 # This file

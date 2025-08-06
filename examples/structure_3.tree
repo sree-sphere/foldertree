@@ -1,15 +1,17 @@
+.
+├── public/
+│   ├── qloo_assets/                       # Avatar Images and Assistant video responses
 ├── src/
-    ├── main.py
-    ├── utils/
-        helpers.py      # Utility functions
-        config.py       # Configuration
-    └── models/
-        └── classifier.py   # ML model
-├── tests/
-    test_main.py
-    test_utils.py
-├── data/
-    └── sample.json
+│   ├── app/
+│   │   └── api/
+│   │       ├── chat/route.ts               # ChatGPT API streaming proxy
+│   │       └── tts/route.ts                # ElevenLabs TTS proxy
+│   ├── components/
+│   │   └── cultural_gamification_ui.tsx    # React Gamification UI component (main)
+│   └── lib/
+│       └── qloo_gamification_sdk.ts        # Qloo SDK wrapper
+├── diversification_engine.py                # Offline diversification script
 ├── requirements.txt
-├── README.md
-└── .gitignore
+├── package.json                            # Node.js deps & scripts
+├── tsconfig.json
+└── README.md

@@ -80,53 +80,133 @@ class TreeParser:
             '.tsx': '//',
         }
     
+    def _calculate_tree_indent_level(self, line: str) -> int:
+        """Calculate indentation level for tree format lines"""
+        # Count the tree symbols and spaces to determine depth
+        tree_symbols = re.match(r'^([│├└─\s]*)', line).group(1)
+
+        level = 0
+        i = 0
+        while i < len(tree_symbols):
+            if tree_symbols[i] in '├└':
+                level += 1
+                i += 4  # skip "├── " or "└── "
+            elif tree_symbols[i] == '│':
+                level += 1
+                i += 4  # skip "│   "
+            else:
+                i += 1
+
+        return level
+
+    def _clean_tree_line(self, line: str) -> Tuple[str, str]:
+        """Clean tree line and extract comment"""
+        clean_line = re.sub(r'^[│├└─\s]*', '', line).strip()
+        comment = None
+        if '#' in clean_line:
+            parts = clean_line.split('#', 1)
+            clean_line = parts[0].strip()
+            comment = parts[1].strip()
+        return clean_line, comment
+
+    @staticmethod
+    def _inject_slashes_for_tree_format(content: str) -> str:
+        """
+        Add trailing slashes to directory names in tree-drawing format (├──, └──).
+        This looks at indent structure to guess if an entry is a folder.
+        """
+        lines = content.strip().splitlines()
+        result = []
+        for i, line in enumerate(lines):
+            if not re.match(r'^[│├└─\s]*\S', line):
+                result.append(line)
+                continue
+
+            # Check if this line likely represents a directory
+            indent_level = 0
+            tree_symbols = re.match(r'^([│├└─\s]*)', line).group(1)
+            for symbol in tree_symbols:
+                if symbol in '├└│':
+                    indent_level += 1
+
+            clean_line = re.sub(r'^[│├└─\s]*', '', line).strip()
+            name = clean_line.split('#', 1)[0].strip()
+
+            is_directory = '.' not in name and not name.endswith('/')
+            # Peek ahead to see if deeper indent follows
+            for j in range(i + 1, len(lines)):
+                next_line = lines[j]
+                if not re.match(r'^[│├└─\s]*\S', next_line):
+                    continue
+                next_indent = 0
+                tree_symbols_next = re.match(r'^([│├└─\s]*)', next_line).group(1)
+                for symbol in tree_symbols_next:
+                    if symbol in '├└│':
+                        next_indent += 1
+                if next_indent > indent_level:
+                    is_directory = True
+                    break  # stop as soon as one deeper indent found
+                elif next_indent <= indent_level:
+                    break  # stop if not deeper — not a dir
+
+
+            if is_directory and not name.endswith('/'):
+                line = line.replace(name, f'{name}/', 1)
+
+            result.append(line)
+
+        return '\n'.join(result)
+
+
     def parse_tree_format(self, content: str) -> TreeNode:
-        """Parse tree-like structure (with ├── └── symbols)"""
+        """Parse tree-like structure (with ├── └── symbols) using indent-based parent detection"""
+        print("parsing tree format")
+        content = self._inject_slashes_for_tree_format(content)
         lines = content.strip().split('\n')
-        root = TreeNode(".", True)
-        stack = [(root, -1)]  # (node, indent_level)
-        
-        for line in lines:
+
+        # Handle optional root line
+        root_name = "."
+        if lines and lines[0].strip() == ".":
+            lines = lines[1:]
+
+        root = TreeNode(root_name, True)
+        stack: List[Tuple[TreeNode, int]] = [(root, -1)]
+
+        for i, line in enumerate(lines):
             if not line.strip():
                 continue
-                
-            # Remove tree symbols and get the actual content
-            clean_line = re.sub(r'^[│├└─\s]*', '', line)
-            if not clean_line:
+            if not re.match(r'^[│├└─\s]*\S', line):
                 continue
-                
-            # Calculate indentation level
-            # indent = len(line) - len(line.lstrip())
-            indent = len(re.match(r'^[│├└─\s]*', line).group())
 
-            
-            # Extract comment if present
-            comment = None
-            if '#' in clean_line:
-                parts = clean_line.split('#', 1)
-                clean_line = parts[0].strip()
-                comment = parts[1].strip()
-            
-            # Skip lines with only comments or ignore patterns
-            if not clean_line or clean_line.startswith('(') or 'git ignored' in clean_line.lower():
+            indent_level = self._calculate_tree_indent_level(line)
+            clean_line, comment = self._clean_tree_line(line)
+
+            if clean_line in ("…", "...") or not clean_line:
                 continue
-                
-            # Determine if it's a directory
-            is_directory = clean_line.endswith('/') or clean_line.endswith('\\')
-            name = clean_line.rstrip('/\\')
-            
-            # Find the correct parent based on indentation
-            while stack and stack[-1][1] >= indent:
+
+            # Peek ahead to next valid line to determine if it's a dir
+            is_directory = False
+            for j in range(i + 1, len(lines)):
+                next_line = lines[j]
+                if not re.match(r'^[│├└─\s]*\S', next_line):
+                    continue
+                next_indent = self._calculate_tree_indent_level(next_line)
+                if next_indent > indent_level:
+                    is_directory = True
+                break
+
+            name = clean_line.rstrip("/\\")
+
+            while len(stack) > 1 and stack[-1][1] >= indent_level:
                 stack.pop()
-            
-            parent = stack[-1][0] if stack else root
-            
-            # Create new node
+            parent = stack[-1][0]
+
             node = TreeNode(name, is_directory, comment)
             parent.children.append(node)
-            stack.append((node, indent))
-        
+            stack.append((node, indent_level))
+
         return root
+
     
     def parse_yaml_format(self, yaml_content):
         yaml_data = yaml.safe_load(yaml_content)
@@ -154,18 +234,49 @@ class TreeParser:
         else:
             return TreeNode(str(data), False)
     
+    def _calculate_simple_indent_level(self, line: str) -> int:
+        """Calculate indentation level for simple format"""
+        # Count leading spaces, treating 4 spaces as one level
+        leading_spaces = len(line) - len(line.lstrip(' '))
+        return leading_spaces // 4
+    
+    @staticmethod
+    def _inject_slashes_for_simple_tree(content: str) -> str:
+        """
+        Take an indented “simple” tree (no ├─ lines) and append a trailing slash to any line that:
+        - isnt already ended with /
+        - doesnt look like it has an extension (no dot in the last path component)
+        so that the existing parser will treat it as a folder.
+        """
+        # matches any non-blank line whose name starts with a non-dot, non-slash, and has no trailing slash.
+        pattern = re.compile(r'^([ \t]*)([^\s./][^\n]*)$', flags=re.M)
+
+        def _slashify(match: re.Match) -> str:
+            indent, name = match.groups()
+            # if it already has an extension, or is a file-like, leave it
+            if '.' in name or name.endswith('/'):
+                return match.group(0)
+            # otherwise append slash
+            return f"{indent}{name}/"
+
+        return pattern.sub(_slashify, content)
+    
     def parse_simple_format(self, content: str) -> TreeNode:
         """Parse simple indented format"""
-        lines = content.strip().split('\n')
+        raw_lines = content.splitlines()
+        if raw_lines and raw_lines[0].strip() == ".":
+            raw_lines = raw_lines[1:]
+        content = self._inject_slashes_for_simple_tree('\n'.join(raw_lines))
+        lines = content.splitlines()
         root = TreeNode(".", True)
         stack = [(root, -1)]
         
-        for line in lines:
+        for i, line in enumerate(lines):
             if not line.strip():
                 continue
-                
-            # Calculate indentation
-            indent = len(line) - len(line.lstrip())
+            
+            # Calculate indentation level (4 spaces = 1 level)
+            indent_level = self._calculate_simple_indent_level(line)
             clean_line = line.strip()
             
             # Extract comment
@@ -177,21 +288,21 @@ class TreeParser:
             
             if not clean_line:
                 continue
-                
+            
             # Determine if directory
             is_directory = clean_line.endswith('/') or not self._has_extension(clean_line)
             name = clean_line.rstrip('/')
             
-            # Find parent
-            while stack and stack[-1][1] >= indent:
+            # Find parent based on indentation
+            while len(stack) > 1 and stack[-1][1] >= indent_level:
                 stack.pop()
             
-            parent = stack[-1][0] if stack else root
+            parent = stack[-1][0]
             
             # Create node
             node = TreeNode(name, is_directory, comment)
             parent.children.append(node)
-            stack.append((node, indent))
+            stack.append((node, indent_level))
         
         return root
     
@@ -212,7 +323,7 @@ class TreeParser:
         
         if format_type == 'auto':
             # Auto-detect format
-            if stripped.startswith(('├', '└', '│')):
+            if any(line.strip().startswith(('├', '└', '│')) for line in stripped.split('\n')):
                 format_type = 'tree'
             elif stripped.startswith(('-', '{', '[', 'name:', 'structure:')):
                 format_type = 'yaml'
@@ -259,8 +370,6 @@ class TreeParser:
             root.children.append(TreeNode(node, is_directory=False))
 
         return root
-
-
 
 
 class TreeGenerator:
@@ -389,3 +498,156 @@ class TreeGenerator:
             'created_dirs': self.created_dirs,
             'skipped_items': self.skipped_items
         }
+
+# def main():
+#     """Main CLI interface"""
+#     parser = argparse.ArgumentParser(
+#         description='Generate folder structures from various input formats',
+#         formatter_class=argparse.RawDescriptionHelpFormatter,
+#         epilog="""
+# Examples:
+#   # From file
+#   foldertree -f structure.tree
+
+#   # From stdin
+#   echo "api/\\n  routes.py" | foldertree
+
+#   # Single path creation
+#   foldertree -p "src/utils/helper.py"
+#   foldertree -p "src/components/Button.tsx" -p "src/hooks/useState.ts"
+
+#   # Dry run
+#   foldertree -f structure.tree --dry-run
+
+#   # Specify output directory
+#   foldertree -f structure.tree -o /path/to/output
+
+#   # Force format
+#   foldertree -f structure.yaml --format yaml
+#         """
+#     )
+
+#     parser.add_argument(
+#         '-f', '--file',
+#         help='Input file containing folder structure'
+#     )
+#     parser.add_argument(
+#         '-p', '--path',
+#         action='append',
+#         help='Create single path (can be used multiple times). Example: -p "src/utils/helper.py"'
+#     )
+#     parser.add_argument(
+#         '-o', '--output',
+#         default='.',
+#         help='Output directory (default: current directory)'
+#     )
+#     parser.add_argument(
+#         '--format',
+#         choices=['tree', 'yaml', 'simple', 'auto'],
+#         default='auto',
+#         help='Input format (default: auto-detect)'
+#     )
+#     parser.add_argument(
+#         '--dry-run',
+#         action='store_true',
+#         help='Show what would be created without actually creating files'
+#     )
+#     parser.add_argument(
+#         '--verbose', '-v',
+#         action='store_true',
+#         help='Verbose output'
+#     )
+#     parser.add_argument(
+#         '--version',
+#         action='version',
+#         version='%(prog)s "1.3.2"'
+#     )
+#     args = parser.parse_args()
+
+#     # Load and filter content
+#     if args.path:
+#         # Path mode: treat each path as a standalone entry
+#         content = '\n'.join(args.path)
+#         format_type = 'simple'
+#     elif args.file:
+#         try:
+#             with open(args.file, 'r') as f:
+#                 content = f.read()
+#             # force tree format for .tree extension
+#             if args.format == 'auto' and args.file.lower().endswith('.tree'):
+#                 format_type = 'tree'
+#             else:
+#                 format_type = args.format
+#         except FileNotFoundError:
+#             print(f"Error: File '{args.file}' not found", file=sys.stderr)
+#             sys.exit(1)
+#         except Exception as e:
+#             print(f"Error reading file: {e}", file=sys.stderr)
+#             sys.exit(1)
+#     else:
+#         # Read from stdin
+#         if sys.stdin.isatty():
+#             print("Error: No input provided. Use -f FILE, -p PATH, or provide input via stdin.", file=sys.stderr)
+#             sys.exit(1)
+#         content = sys.stdin.read()
+#         format_type = args.format
+
+#     # Remove lines that are just dots or ellipses
+#     lines = content.splitlines()
+#     filtered = []
+#     for l in lines:
+#         if re.match(r'^\s*(?:\.+|\u2026+)\s*$', l):
+#             continue
+#         filtered.append(l)
+#     content = '\n'.join(filtered)
+
+#     if not content.strip():
+#         print("Error: No input provided", file=sys.stderr)
+#         sys.exit(1)
+
+#     try:
+#         # Parse input
+#         tree_parser = TreeParser()
+#         print(f"Parsing input with format '{format_type}'")
+#         print("DEBUG — Content passed to parser:\n" + content)
+#         tree = tree_parser.parse(content, format_type)
+#         print(f"Parsed {tree} from input")
+
+#         # Generate structure
+#         generator = TreeGenerator(base_path=args.output, dry_run=args.dry_run)
+#         result = generator.generate(tree)
+
+#         # Print results
+#         if args.dry_run:
+#             print("🔍 DRY RUN - No files were actually created")
+#             print()
+
+#         if result['created_dirs']:
+#             print(f"📁 Created directories ({len(result['created_dirs'])}):")
+#             for dir_path in result['created_dirs']:
+#                 print(f"  📁 {dir_path}")
+#             print()
+
+#         if result['created_files']:
+#             print(f"📄 Created files ({len(result['created_files'])}):")
+#             for file_path in result['created_files']:
+#                 print(f"  📄 {file_path}")
+#             print()
+
+#         if result['skipped_items']:
+#             print(f"⏭️  Skipped items ({len(result['skipped_items'])}):")
+#             for item in result['skipped_items']:
+#                 print(f"  ⏭️  {item}")
+#             print()
+
+#         if args.verbose:
+#             print(f"✅ Total: {len(result['created_dirs'])} directories, {len(result['created_files'])} files")
+#             if result['skipped_items']:
+#                 print(f"⏭️  Skipped: {len(result['skipped_items'])} items")
+#     except Exception as e:
+#         print(f"❌ Error: {e}", file=sys.stderr)
+#         sys.exit(1)
+
+
+# if __name__ == "__main__":
+#     main()

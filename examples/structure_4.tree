@@ -1,0 +1,22 @@
+.
+├── examples/
+│   ├── structure_1.tree
+│   ├── structure_2.tree
+│   └── structure_3.tree
+├── foldertree
+│   ├── __init__.py
+│   ├── cli.py
+│   └── core.py
+├── LICENSE
+├── MANIFEST.in
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── setup.cfg
+├── setup.py
+├── tests
+│   ├── __init__.py
+│   ├── test_cli.py
+│   ├── test_core.py
+│   ├── test_generator.py
+│   └── test_parser.py

@@ -29,3 +29,4 @@ venv.bak/
 htmlcov/
 .tox/
 .pytest_cache/
+.DS_Store
