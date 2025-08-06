@@ -78,4 +78,5 @@ jobs:
 
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG for ${{ github.ref_name }}"
-          git push
+          git push origin HEAD:main
+
